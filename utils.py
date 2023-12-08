@@ -80,7 +80,7 @@ def add_corners(im, rad=65, bg=True, bgCol='black', bgPix=2):
 
 
 def process_train_image(img, wsize=128, hsize=128):
-    img = img.filter(ImageFilter.GaussianBlur(1))
+    # img = img.filter(ImageFilter.GaussianBlur(1))
     # img = img.filter(ImageFilter.BLUR)
     return post_process(img, wsize, hsize)
 
@@ -108,7 +108,7 @@ def process_test_image(img, wsize=128, hsize=128):
 
 
 def post_process(img, wsize=128, hsize=128):
-    img = img.resize((wsize, hsize), Image.Resampling.LANCZOS)
-    img = add_corners(img)
+    # img = img.resize((wsize, hsize), Image.Resampling.LANCZOS)
+    # img = add_corners(img)
     img = img.resize((wsize, hsize), Image.Resampling.LANCZOS)
     return img.convert('RGB')

@@ -57,7 +57,7 @@ class HeroTestDataset(Dataset):
         x = Image.open(filepath)
         x = utils.process_test_image(x, wsize=128, hsize=128)
         hero_name = self.ground_truth[index][1]
-        assert hero_name in self.classes_dict, "Hero name is not defined"
+        assert hero_name in self.classes_dict, f"Hero name {hero_name} is not defined"
         label = self.classes_dict[hero_name]
         
         if self.transform:

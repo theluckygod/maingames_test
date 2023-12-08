@@ -1,4 +1,3 @@
-'''Train CIFAR10 with PyTorch.'''
 import torch
 import torch.nn as nn
 import torch.optim as optim
@@ -14,6 +13,7 @@ import argparse
 from models.vgg import VGG
 from dataset import HeroDataset, HeroTestDataset
 
+torch.manual_seed(42)
 
 # Training
 def train(model, trainloader, optimizer, criterion, epoch):
