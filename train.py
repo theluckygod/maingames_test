@@ -12,83 +12,20 @@ import os
 import argparse
 
 from models.vgg import VGG
-from train_utils import progress_bar
-from dataset import HeroDataset
-
-
-parser = argparse.ArgumentParser(description='PyTorch CIFAR10 Training')
-parser.add_argument('--lr', default=0.001, type=float, help='learning rate')
-parser.add_argument('--resume', '-r', action='store_true',
-                    help='resume from checkpoint')
-args = parser.parse_args()
-
-device = 'cuda' if torch.cuda.is_available() else 'cpu'
-best_acc = 0  # best test accuracy
-start_epoch = 0  # start from epoch 0 or last checkpoint epoch
-
-# Data
-# print('==> Preparing data..')
-# transform_train = transforms.Compose([
-#     transforms.RandomCrop(32, padding=4),
-#     transforms.RandomHorizontalFlip(),
-#     transforms.ToTensor(),
-#     transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010)),
-# ])
-
-# transform_test = transforms.Compose([
-#     transforms.ToTensor(),
-#     transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010)),
-# ])
-
-trainset = HeroDataset()
-trainloader = torch.utils.data.DataLoader(
-    trainset, batch_size=32, shuffle=True, num_workers=2)
-
-# testset = torchvision.datasets.CIFAR10(
-#     root='./data', train=False, download=True, transform=transform_test)
-# testloader = torch.utils.data.DataLoader(
-#     testset, batch_size=100, shuffle=False, num_workers=2)
-
-classes = trainset.get_class_names()
-
-# Model
-print('==> Building model..')
-net = VGG('VGG19')
-
-# replace the last layer with classes
-net.classifier = nn.Linear(512, len(classes))
-
-net = net.to(device)
-if device == 'cuda':
-    net = torch.nn.DataParallel(net)
-    cudnn.benchmark = True
-
-if args.resume:
-    # Load checkpoint.
-    print('==> Resuming from checkpoint..')
-    assert os.path.isdir('checkpoint'), 'Error: no checkpoint directory found!'
-    checkpoint = torch.load('./checkpoint/ckpt.pth')
-    net.load_state_dict(checkpoint['net'])
-    best_acc = checkpoint['acc']
-    start_epoch = checkpoint['epoch']
-
-criterion = nn.CrossEntropyLoss()
-optimizer = optim.SGD(net.parameters(), lr=args.lr,
-                      momentum=0.9, weight_decay=5e-4)
-scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=200)
+from dataset import HeroDataset, HeroTestDataset
 
 
 # Training
-def train(epoch):
+def train(model, trainloader, optimizer, criterion, epoch):
     print('\nEpoch: %d' % epoch)
-    net.train()
+    model.train()
     train_loss = 0
     correct = 0
     total = 0
     for batch_idx, (inputs, targets) in enumerate(trainloader):
         inputs, targets = inputs.to(device), targets.to(device)
         optimizer.zero_grad()
-        outputs = net(inputs)
+        outputs = model(inputs)
         loss = criterion(outputs, targets)
         loss.backward()
         optimizer.step()
@@ -98,46 +35,95 @@ def train(epoch):
         total += targets.size(0)
         correct += predicted.eq(targets).sum().item()
 
-        progress_bar(batch_idx, len(trainloader), 'Loss: %.3f | Acc: %.3f%% (%d/%d)'
-                     % (train_loss/(batch_idx+1), 100.*correct/total, correct, total))
+    print('Train Loss: %.2f | Acc: %.2f%% (%d/%d)' % (train_loss/(batch_idx+1), 100.*correct/total, correct, total))
 
 
-# def test(epoch):
-#     global best_acc
-#     net.eval()
-#     test_loss = 0
-#     correct = 0
-#     total = 0
-#     with torch.no_grad():
-#         for batch_idx, (inputs, targets) in enumerate(testloader):
-#             inputs, targets = inputs.to(device), targets.to(device)
-#             outputs = net(inputs)
-#             loss = criterion(outputs, targets)
+def test(model, testloader, criterion, epoch, best_acc=0):
+    model.eval()
+    test_loss = 0
+    correct = 0
+    total = 0
+    with torch.no_grad():
+        for batch_idx, (inputs, targets) in enumerate(testloader):
+            inputs, targets = inputs.to(device), targets.to(device)
+            outputs = model(inputs)
+            loss = criterion(outputs, targets)
 
-#             test_loss += loss.item()
-#             _, predicted = outputs.max(1)
-#             total += targets.size(0)
-#             correct += predicted.eq(targets).sum().item()
+            test_loss += loss.item()
+            _, predicted = outputs.max(1)
+            total += targets.size(0)
+            correct += predicted.eq(targets).sum().item()
 
-#             progress_bar(batch_idx, len(testloader), 'Loss: %.3f | Acc: %.3f%% (%d/%d)'
-#                          % (test_loss/(batch_idx+1), 100.*correct/total, correct, total))
+        print('Test Loss: %.2f | Acc: %.2f%% (%d/%d)' % (test_loss/(batch_idx+1), 100.*correct/total, correct, total))
 
-#     # Save checkpoint.
-#     acc = 100.*correct/total
-#     if acc > best_acc:
-#         print('Saving..')
-#         state = {
-#             'net': net.state_dict(),
-#             'acc': acc,
-#             'epoch': epoch,
-#         }
-#         if not os.path.isdir('checkpoint'):
-#             os.mkdir('checkpoint')
-#         torch.save(state, './checkpoint/ckpt.pth')
-#         best_acc = acc
+    # Save checkpoint.
+    acc = 100.*correct/total
+    if acc > best_acc:
+        print('Saving..')
+        state = {
+            'model': model.state_dict(),
+            'acc': acc,
+            'epoch': epoch,
+        }
+        if not os.path.isdir('checkpoint'):
+            os.mkdir('checkpoint')
+        torch.save(state, './checkpoint/ckpt.pth')
+        best_acc = acc
+
+    return best_acc
 
 if __name__ == '__main__':
-    for epoch in range(start_epoch, start_epoch+200):
-        train(epoch)
-        # test(epoch)
+    parser = argparse.ArgumentParser(description='Training model VGG19')
+    parser.add_argument('--lr', default=0.001, type=float, help='learning rate')
+    parser.add_argument('--epoch', default=200, type=int, help='num of training epochs')
+    parser.add_argument('--wd', default=1e-2, type=float, help='weight decay')
+    args = parser.parse_args()
+
+    device = 'cuda' if torch.cuda.is_available() else 'cpu'
+
+    # Data
+    print('==> Preparing data..')
+    transform_train = transforms.Compose([
+        transforms.ToTensor(),
+        transforms.RandomChoice([transforms.GaussianBlur(kernel_size=(7, 7), sigma=(0.5, 7.))]),
+        # transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010)),
+        transforms.RandomChoice([transforms.CenterCrop(size=size) for size in (70, 90, 100, 110, 128)]),
+        transforms.RandomChoice([transforms.Pad(padding=padding) for padding in (2, 5, 10, 15)]),
+        transforms.RandomChoice([transforms.Resize(size=size) for size in (70, 90, 100, 120)]),
+        transforms.Resize(size=32)
+    ])
+
+    transform_test = transforms.Compose([
+        transforms.ToTensor(),
+        # transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010)),
+        transforms.Resize(size=32)
+    ])
+
+    trainset = HeroDataset(transform=transform_train)
+    trainloader = torch.utils.data.DataLoader(
+        trainset, batch_size=32, shuffle=True, num_workers=2)
+
+    testset = HeroTestDataset(trainset.get_class_dict(), transform=transform_test)
+    testloader = torch.utils.data.DataLoader(
+        testset, batch_size=32, shuffle=False, num_workers=2)
+
+    classes = trainset.get_class_names()
+
+    # Model
+    print('==> Building model..')
+    model = VGG('VGG19')
+
+    # replace the last layer with classes
+    model.classifier = nn.Linear(512, len(classes))
+
+    model = model.to(device)
+
+    criterion = nn.CrossEntropyLoss()
+    optimizer = optim.SGD(model.parameters(), lr=args.lr, momentum=0.9, weight_decay=args.wd)
+    scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=200)
+
+    best_acc = 0
+    for epoch in range(args.epoch):
+        train(model, trainloader, optimizer, criterion, epoch)
+        best_acc = test(model, testloader, criterion, epoch, best_acc)
         scheduler.step()
