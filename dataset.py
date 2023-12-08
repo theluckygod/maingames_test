@@ -13,6 +13,7 @@ class HeroDataset(Dataset):
         self.data = os.listdir(data_path)
         self.data = list(filter(lambda x: x.endswith(".png"), self.data))
         hero_names = list(map(lambda x: x.split(".png")[0], self.data))
+        hero_names = sorted(hero_names)
         self.label = dict(zip(hero_names, range(len(hero_names)))) 
         self.data_path = data_path
 
