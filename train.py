@@ -80,6 +80,7 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
+    print("Using device: ", device)
 
     # Data
     print('==> Preparing data..')
@@ -128,3 +129,4 @@ if __name__ == '__main__':
         train(model, trainloader, optimizer, criterion, epoch)
         best_acc = test(model, testloader, criterion, epoch, best_acc)
         scheduler.step()
+    print('Best accuracy: ', best_acc)

@@ -43,7 +43,7 @@ class HeroDataset(Dataset):
     
 
 class HeroTestDataset(Dataset):
-    def __init__(self, classes_dict: dict[str, int], data_path="test_data/test_images", ground_truth_path="test_data/test.txt", transform=None):
+    def __init__(self, classes_dict, data_path="test_data/test_images", ground_truth_path="test_data/test.txt", transform=None):
         self.data_path = data_path
         with open(ground_truth_path, 'r') as f:
             lines = f.readlines()
