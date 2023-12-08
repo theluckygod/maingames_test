@@ -1,4 +1,5 @@
 
+import math
 import cv2
 import numpy as np
 from PIL import Image, ImageDraw, ImageFilter
@@ -12,7 +13,7 @@ def detect_circle_avatar(org_img: Image, padding=5, min_radius=None, max_radius=
     if min_radius is None:
         min_radius = img.shape[0] // 4
     if max_radius is None:
-        max_radius = img.shape[0] // 2
+        max_radius = math.ceil(img.shape[0] / 1.75)
 
     # tune circles size
     detected_circles = cv2.HoughCircles(gray_blurred,
