@@ -78,10 +78,22 @@ def add_corners(im, rad=65, bg=True, bgCol='black', bgPix=2):
     bg_im.paste(im, (bgPix, bgPix), im)
     return im if not bg else bg_im
 
+def crop_center(img):
+    width, height = img.size   # Get dimensions
+
+    left = width // 10
+    top = height // 10
+    right = width - left
+    bottom = height - top
+
+    # Crop the center of the image
+    return img.crop((left, top, right, bottom))
+
 
 def process_train_image(img, wsize=128, hsize=128):
-    # img = img.filter(ImageFilter.GaussianBlur(1))
+    img = img.filter(ImageFilter.GaussianBlur(1))
     # img = img.filter(ImageFilter.BLUR)
+    img = crop_center(img)
     return post_process(img, wsize, hsize)
 
 
@@ -108,7 +120,7 @@ def process_test_image(img, wsize=128, hsize=128):
 
 
 def post_process(img, wsize=128, hsize=128):
-    # img = img.resize((wsize, hsize), Image.Resampling.LANCZOS)
-    # img = add_corners(img)
+    img = img.resize((wsize, hsize), Image.Resampling.LANCZOS)
+    img = add_corners(img)
     img = img.resize((wsize, hsize), Image.Resampling.LANCZOS)
     return img.convert('RGB')

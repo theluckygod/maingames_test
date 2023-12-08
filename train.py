@@ -85,11 +85,12 @@ if __name__ == '__main__':
     print('==> Preparing data..')
     transform_train = transforms.Compose([
         transforms.ToTensor(),
-        transforms.RandomChoice([transforms.GaussianBlur(kernel_size=(7, 7), sigma=(0.5, 7.))]),
+        transforms.RandomChoice([transforms.CenterCrop(size=size) for size in (100, 110, 128, 128)]),
+        transforms.RandomChoice([transforms.GaussianBlur(kernel_size=(7, 7), sigma=(3.5, 7.))]
+                                + [transforms.Resize(size=size) for size in (16, 32, 32, 64, 128)]),
         # transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010)),
-        transforms.RandomChoice([transforms.CenterCrop(size=size) for size in (70, 90, 100, 110, 128)]),
-        transforms.RandomChoice([transforms.Pad(padding=padding) for padding in (2, 5, 10, 15)]),
-        transforms.RandomChoice([transforms.Resize(size=size) for size in (70, 90, 100, 120)]),
+        transforms.RandomPerspective(distortion_scale=0.3, p=0.2),
+        # transforms.RandomChoice([transforms.Pad(padding=padding) for padding in (2, 5, 7, 10)]),
         transforms.Resize(size=32)
     ])
 
@@ -101,7 +102,7 @@ if __name__ == '__main__':
 
     trainset = HeroDataset(transform=transform_train)
     trainloader = torch.utils.data.DataLoader(
-        trainset, batch_size=32, shuffle=True, num_workers=2)
+        trainset, batch_size=8, shuffle=True, num_workers=2)
 
     testset = HeroTestDataset(trainset.get_class_dict(), transform=transform_test)
     testloader = torch.utils.data.DataLoader(
