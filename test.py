@@ -15,7 +15,7 @@ def test(model, testloader, criterion):
     correct = 0
     total = 0
     with torch.no_grad():
-        for batch_idx, (inputs, targets, filename, idx) in enumerate(testloader):
+        for batch_idx, (inputs, targets) in enumerate(testloader):
             inputs, targets = inputs.to(device), targets.to(device)
             outputs = model(inputs)
             loss = criterion(outputs, targets)
@@ -26,7 +26,7 @@ def test(model, testloader, criterion):
             correct += predicted.eq(targets).sum().item()
 
             if predicted != targets:
-                print(classes[predicted.item()], f"label={classes[targets.item()]}", filename, idx)
+                print(classes[predicted.item()], f"label={classes[targets.item()]}")
     print('Test Loss: %.2f | Acc: %.2f%% (%d/%d)' % (test_loss/(batch_idx+1), 100.*correct/total, correct, total))
 
 if __name__ == "__main__":
