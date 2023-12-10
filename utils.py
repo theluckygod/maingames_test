@@ -125,3 +125,7 @@ def post_process(img, wsize=128, hsize=128):
     img = add_corners(img)
     img = img.resize((wsize, hsize), Image.Resampling.LANCZOS)
     return img.convert('RGB')
+
+
+def correct_label(hero_name):
+    return "Dr._Mundo" if hero_name == "Dr._Mundo_2" else hero_name

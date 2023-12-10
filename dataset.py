@@ -3,7 +3,6 @@ from PIL import Image
 import numpy as np
 import torch
 from torch.utils.data import Dataset
-import torchvision.transforms.functional as F
 
 import utils
 
@@ -13,7 +12,7 @@ class HeroDataset(Dataset):
         self.data = os.listdir(data_path)
         self.data = list(filter(lambda x: x.endswith(".png"), self.data))
         self.data = sorted(self.data)
-        self.data = list(map(lambda x: "Dr._Mundo" if x == "Dr._Mundo_2" else x, self.data))
+        self.data = list(map(utils.correct_label, self.data))
         
         hero_names = list(map(lambda x: x.split(".png")[0], self.data))
         self.label = dict(zip(hero_names, range(len(hero_names)))) 

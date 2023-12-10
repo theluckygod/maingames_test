@@ -9,7 +9,6 @@ torch.manual_seed(42)
 device = 'cuda'
 
 def test(model, testloader, criterion):
-    device = 'cuda'
     model.eval()
     test_loss = 0
     correct = 0
