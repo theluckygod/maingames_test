@@ -1,0 +1,11 @@
+FROM nvidia/cuda:11.2.2-devel-ubuntu20.04
+
+RUN apt update 
+    && apt-get -y install libgl1-mesa-glx libglib2.0-0 vim
+    && apt -y install python3-pip
+
+RUN pip install --upgrade pip
+    && pip install torch==1.10.1+cu111 torchvision==0.11.2+cu111 torchaudio==0.10.1 -f https://download.pytorch.org/whl/cu111/torch_stable.html
+
+RUN pip install -r requirements.txt
+WORKDIR /src

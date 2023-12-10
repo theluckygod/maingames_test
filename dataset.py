@@ -74,6 +74,30 @@ class HeroTestDataset(Dataset):
         return len(self.ground_truth)
     
 
+class HeroInferenceDataset(Dataset):
+    def __init__(self, classes_dict, images_path="test_data/test_images", transform=None):
+        self.data_path = images_path
+        self.images = os.listdir(self.data_path)
+        self.classes_dict = classes_dict
+        self.transform = transform
+
+    def __getitem__(self, index):
+        filepath = os.path.join(self.data_path, self.images[index])
+        x = Image.open(filepath)
+        x = utils.process_test_image(x, wsize=128, hsize=128)
+        
+        if self.transform:
+            x = self.transform(x)
+        else:
+            x = torch.from_numpy(np.array(x))
+            x = x.permute(2, 0, 1)
+
+        return x.to(torch.float32), self.images[index]
+
+    def __len__(self):
+        return len(self.images)
+    
+
 if __name__ == "__main__":
     train_set = HeroDataset()
     dataset = HeroTestDataset(classes_dict=train_set.get_class_dict())

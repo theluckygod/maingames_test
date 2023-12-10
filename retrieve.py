@@ -1,9 +1,11 @@
+import argparse
+
 import torch
 import torch.nn as nn
 import torchvision.transforms as transforms
 
 from models.vgg import VGG
-from dataset import HeroDataset, HeroTestDataset
+from dataset import HeroDataset, HeroInferenceDataset
 
 from torch.nn.functional import cosine_similarity
 
@@ -13,16 +15,13 @@ torch.manual_seed(42)
 device = 'cuda'
 
 
-def test(model, class_embeds, testset, classes: list):
+def predict(model, class_embeds, testset, classes: list, output_path: str):
     model.eval()
 
-    correct = 0
-    total = len(testset)
-
+    predictions = []
     for i in range(len(testset)):
-        input, target = testset[i]
+        input, filename = testset[i]
         input = input.unsqueeze(0).to(device)
-        target = classes[target.item()]
         
         with torch.no_grad():
             outputs = model(input, get_features=True)
@@ -33,16 +32,18 @@ def test(model, class_embeds, testset, classes: list):
         predicted = classes[predicted]
         predicted = utils.correct_label(predicted)
 
-        correct += (predicted == target)
+        predictions.append((filename, predicted))
 
-    print('Acc: %.2f%% (%d/%d)' % (100.*correct/total, correct, total))
+    with open(output_path, 'w') as f:
+        for filename, predicted in predictions:
+            f.write(f"{filename}\t{predicted}\n")
 
+    print(f"Predictions saved to {output_path}")
 
 def get_class_embeds(model, dataset):
     model.eval()
     embeds = []
     targets = []
-    
     
     for i in range(len(dataset)):
         input, target = dataset[i]
@@ -57,6 +58,12 @@ def get_class_embeds(model, dataset):
 
 
 if __name__ == "__main__":
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--checkpoint_path', default='checkpoint/ckpt.pth', type=str, help='checkpoint path')
+    parser.add_argument('--data_path', default='/test_images', type=str, help='images path')
+    parser.add_argument('--output_path', default='/outputs/test.txt', type=str, help='output path')
+    args = parser.parse_args()    
+
     transform_train = transforms.Compose([
         transforms.ToTensor(),
         transforms.Resize(size=32)
@@ -71,7 +78,7 @@ if __name__ == "__main__":
 
     model = model.to(device)
 
-    state_dict = torch.load("checkpoint/ckpt.pth", map_location='cpu')
+    state_dict = torch.load(args.checkpoint_path, map_location='cpu')
     model.load_state_dict(state_dict['model'])
     print(f"State dict loaded. Acc: {state_dict['acc']}")
 
@@ -83,6 +90,8 @@ if __name__ == "__main__":
         transforms.ToTensor(),
         transforms.Resize(size=32)
     ])
-    testset = HeroTestDataset(trainset.get_class_dict(), transform=transform_test)
+    testset = HeroInferenceDataset(trainset.get_class_dict(),
+                              images_path=args.data_path,
+                              transform=transform_test)
 
-    test(model, class_embeds, testset, classes)
+    predict(model, class_embeds, testset, classes, args.output_path)
