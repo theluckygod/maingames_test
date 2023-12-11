@@ -1,0 +1,14 @@
+FROM nvidia/cuda:11.2.2-devel-ubuntu20.04
+
+ARG  DEBIAN_FRONTEND=noninteractive
+
+RUN apt update \
+    && apt-get -y install libgl1-mesa-glx libglib2.0-0 \
+    && apt -y install python3-pip
+
+RUN pip install --upgrade pip \
+    && pip install torch==1.10.1+cu111 torchvision==0.11.2+cu111 torchaudio==0.10.1 -f https://download.pytorch.org/whl/cu111/torch_stable.html
+
+COPY requirements.txt /tmp/requirements.txt
+RUN pip install -r /tmp/requirements.txt
+WORKDIR /src

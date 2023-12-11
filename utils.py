@@ -1,4 +1,5 @@
 
+import math
 import cv2
 import numpy as np
 from PIL import Image, ImageDraw, ImageFilter
@@ -12,7 +13,7 @@ def detect_circle_avatar(org_img: Image, padding=5, min_radius=None, max_radius=
     if min_radius is None:
         min_radius = img.shape[0] // 4
     if max_radius is None:
-        max_radius = img.shape[0] // 2
+        max_radius = math.ceil(img.shape[0] / 1.75)
 
     # tune circles size
     detected_circles = cv2.HoughCircles(gray_blurred,
@@ -78,10 +79,22 @@ def add_corners(im, rad=65, bg=True, bgCol='black', bgPix=2):
     bg_im.paste(im, (bgPix, bgPix), im)
     return im if not bg else bg_im
 
+def crop_center(img):
+    width, height = img.size   # Get dimensions
+
+    left = width // 10
+    top = height // 10
+    right = width - left
+    bottom = height - top
+
+    # Crop the center of the image
+    return img.crop((left, top, right, bottom))
+
 
 def process_train_image(img, wsize=128, hsize=128):
     img = img.filter(ImageFilter.GaussianBlur(1))
     # img = img.filter(ImageFilter.BLUR)
+    img = crop_center(img)
     return post_process(img, wsize, hsize)
 
 
@@ -112,3 +125,7 @@ def post_process(img, wsize=128, hsize=128):
     img = add_corners(img)
     img = img.resize((wsize, hsize), Image.Resampling.LANCZOS)
     return img.convert('RGB')
+
+
+def correct_label(hero_name):
+    return "Dr._Mundo" if hero_name == "Dr._Mundo_2" else hero_name
